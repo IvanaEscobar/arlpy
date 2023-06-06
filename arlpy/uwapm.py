@@ -30,6 +30,7 @@ from struct import unpack as _unpack
 from sys import float_info as _fi
 import arlpy.plot as _plt
 import bokeh as _bokeh
+from shutil import copy2 as _cp
 
 # constants
 linear = 'linear'
@@ -498,6 +499,43 @@ def plot_rays(rays, env=None, invert_colors=False, **kwargs):
         plot_env(env)
     _plt.hold(oh)
 
+def plot_delays(delays, env=None, invert_colors=False, **kwargs):
+    """Plots delay time fronts.
+
+    :param delays: delay fronts
+    :param env: environment definition
+    :param invert_colors: False to use black for high intensity delays, True to use white
+
+    If environment definition is provided, it is overlayed over this plot using default
+    parameters for `arlpy.uwapm.plot_env()`.
+
+    Other keyword arguments applicable for `arlpy.plot.plot()` are also supported.
+
+    >>> import arlpy.uwapm as pm
+    >>> env = pm.create_env2d()
+    >>> delays = pm.compute_eigenrays(env)
+    >>> pm.plot_delays(delays, width=1000)
+    """
+    delays = delays.sort_values('bottom_bounces', ascending=False)
+    max_amp = _np.max(_np.abs(delays.bottom_bounces)) if len(delays.bottom_bounces) > 0 else 0
+    if max_amp <= 0:
+        max_amp = 1
+    divisor = 1
+    xlabel = 'Time (s)'
+    r = []
+    for _, row in delays.iterrows():
+        r += list(row.delay[:,0])
+    oh = _plt.hold()
+    for _, row in delays.iterrows():
+        c = int(255*_np.abs(row.bottom_bounces)/max_amp)
+        if invert_colors:
+            c = 255-c
+        c = _bokeh.colors.RGB(c, c, c)
+        _plt.plot(row.delay[:,0]/divisor, -row.delay[:,1], color=c, xlabel=xlabel, ylabel='Depth (m)', **kwargs)
+    if env is not None:
+        plot_env(env)
+    _plt.hold(oh)
+
 def plot_transmission_loss(tloss, env=None, **kwargs):
     """Plots transmission loss.
 
@@ -609,6 +647,9 @@ class _Bellhop:
                     print('[WARN] Bellhop did not generate expected output file')
         if debug:
             print('[DEBUG] Bellhop working files: '+fname_base+'.*')
+            _cp(fname_base+'.env', '/home/ivana/')
+            _cp(fname_base+'.bty', '/home/ivana/')
+            _cp(fname_base+'.ssp', '/home/ivana/')
         else:
             self._unlink(fname_base+'.env')
             self._unlink(fname_base+'.bty')
@@ -824,6 +865,33 @@ class _Bellhop:
                     'ray': [ray]
                 }))
         return _pd.concat(rays)
+
+    def _load_delays(self, fname_base):
+        with open(fname_base+'.delay', 'rt') as f:
+            f.readline()
+            f.readline()
+            f.readline()
+            f.readline()
+            f.readline()
+            f.readline()
+            f.readline()
+            delays = []
+            while True:
+                s = f.readline()
+                if s is None or len(s.strip()) == 0:
+                    break
+                a = float(s)
+                pts, sb, bb = self._readf(f, (int, int, int))
+                delay = _np.empty((pts, 2))
+                for k in range(pts):
+                    delay[k,:] = self._readf(f, (float, float))
+                delays.append(_pd.DataFrame({
+                    'angle_of_departure': [a],
+                    'surface_bounces': [sb],
+                    'bottom_bounces': [bb],
+                    'delay': [delay]
+                }))
+        return _pd.concat(delays)
 
     def _load_shd(self, fname_base):
         with open(fname_base+'.shd', 'rb') as f:
