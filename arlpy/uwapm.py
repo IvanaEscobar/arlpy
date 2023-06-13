@@ -488,13 +488,20 @@ def plot_rays(rays, env=None, invert_colors=False, **kwargs):
     if max(r)-min(r) > 10000:
         divisor = 1000
         xlabel = 'Range (km)'
+    # ESCOBAR: add xlimits similar to plot_env
+    min_x = 0
+    max_x = _np.max(env['rx_range'])/divisor
+    mgn_x = 0.01*(max_x-min_x)/divisor
+    #
     oh = _plt.hold()
     for _, row in rays.iterrows():
         c = int(255*_np.abs(row.bottom_bounces)/max_amp)
         if invert_colors:
             c = 255-c
         c = _bokeh.colors.RGB(c, c, c)
-        _plt.plot(row.ray[:,0]/divisor, -row.ray[:,1], color=c, xlabel=xlabel, ylabel='Depth (m)', **kwargs)
+        _plt.plot(row.ray[:,0]/divisor, -row.ray[:,1], color=c,\
+                xlabel=xlabel, ylabel='Depth (m)', \
+                xlim=(min_x-mgn_x, max_x+mgn_x), **kwargs)
     if env is not None:
         plot_env(env)
     _plt.hold(oh)
@@ -650,6 +657,7 @@ class _Bellhop:
             _cp(fname_base+'.env', '/home/ivana/')
             _cp(fname_base+'.bty', '/home/ivana/')
             _cp(fname_base+'.ssp', '/home/ivana/')
+            _cp(fname_base+'.prt', '/home/ivana/')
         else:
             self._unlink(fname_base+'.env')
             self._unlink(fname_base+'.bty')
