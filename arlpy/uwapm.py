@@ -831,19 +831,19 @@ class _Bellhop:
                         for n in range(count):
                             data = self._readf(f, (float, float, float, float, float, float, int, int))
                             arrivals.append(_pd.DataFrame({
-                                'tx_depth_ndx': [j],
-                                'rx_depth_ndx': [k],
-                                'rx_range_ndx': [m],
-                                'tx_depth': [tx_depth[j]],
-                                'rx_depth': [rx_depth[k]],
-                                'rx_range': [rx_range[m]],
                                 'arrival_number': [n],
                                 'arrival_amplitude': [data[0]*_np.exp(1j*data[1])],
                                 'time_of_arrival': [data[2]],
                                 'angle_of_departure': [data[4]],
                                 'angle_of_arrival': [data[5]],
                                 'surface_bounces': [data[6]],
-                                'bottom_bounces': [data[7]]
+                                'bottom_bounces': [data[7]],
+                                'tx_depth_ndx': [j],
+                                'rx_depth_ndx': [k],
+                                'rx_range_ndx': [m],
+                                'tx_depth': [tx_depth[j]],
+                                'rx_depth': [rx_depth[k]],
+                                'rx_range': [rx_range[m]]
                             }, index=[len(arrivals)+1]))
         return _pd.concat(arrivals)
 
